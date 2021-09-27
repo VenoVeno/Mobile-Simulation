@@ -1,10 +1,8 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.HashMap;
-import java.util.List;
 
 public class Phone {
     public static class Mobile {
@@ -40,7 +38,7 @@ public class Phone {
         public String FindCarrier(long number) {
             for (int index = 0; index < this.mobiles; index++) {
                 if (this.mobilesList[index].number == number)
-                    return this.mobilesList[index].carrier.toLowerCase();
+                    return this.mobilesList[index].carrier;
             }
 
             return "";
@@ -49,7 +47,7 @@ public class Phone {
         public String FindBrand(long number) {
             for (int index = 0; index < this.mobiles; index++) {
                 if (this.mobilesList[index].number == number)
-                    return this.mobilesList[index].brand.toLowerCase();
+                    return this.mobilesList[index].brand;
             }
 
             return "";
@@ -108,25 +106,47 @@ public class Phone {
         }
     }
 
-    public static class HashMapCaseInsensitive extends HashMap<String, List<Object>> {
+    public static class CaseInsensitiveMap extends HashMap<String, Integer> {
         @Override
-        public List<Object> put(String key, List<Object> value) {
+        public Integer put(String key, Integer value) {
             return super.put(key.toLowerCase(), value);
         }
 
         @Override
-        public List<Object> get(Object key) {
+        public Integer get(Object key) {
+            return super.get(key.toString().toLowerCase());
+        }
+    }
+
+    public static class CaseInsensitiveMapInsideMap extends HashMap<String, CaseInsensitiveMap> {
+        @Override
+        public CaseInsensitiveMap put(String key, CaseInsensitiveMap value) {
+            return super.put(key.toLowerCase(), value);
+        }
+
+        @Override
+        public CaseInsensitiveMap get(Object key) {
             return super.get(key.toString().toLowerCase());
         }
     }
 
     public static class Charge {
-
-        public Map<String, List<Object>> smsCharge = new HashMapCaseInsensitive();
+        public Map<String, CaseInsensitiveMap> smsCharge = new CaseInsensitiveMapInsideMap();
 
         Charge() {
-            this.smsCharge.put("Airtel", Arrays.asList("Vodadfone", 10));
-            this.smsCharge.put("Vodafone", Arrays.asList("Airtel", 20));
+            this.smsCharge.put("Airtel", new CaseInsensitiveMap() {
+                {
+                    put("Vodafone", 10);
+                    put("Jio", 50);
+                }
+            });
+
+            this.smsCharge.put("Vodafone", new CaseInsensitiveMap() {
+                {
+                    put("Airtel", 20);
+                    put("Jio", 100);
+                }
+            });
         }
     }
 
@@ -139,6 +159,7 @@ public class Phone {
             Map<Long, Integer> cost = new HashMap<>();
 
             System.out.println(users.userList);
+            System.out.println(charge.smsCharge);
 
             for (int index = 0; index < queue.messageQueue.size(); index++) {
                 long sender = queue.messageQueue.get(index).sender;
@@ -146,7 +167,7 @@ public class Phone {
 
                 System.out.println();
                 System.out.println("From : " + sender);
-                System.out.println("To : " + queue.messageQueue.get(index).receiver);
+                System.out.println("To : " + receiver);
                 System.out.println("Date Time : " + queue.messageQueue.get(index).date);
                 System.out.println(queue.messageQueue.get(index).message);
                 System.out.println("Message From " + mobiles.FindBrand(sender));
@@ -155,18 +176,27 @@ public class Phone {
                     cost.put(sender, 0);
                 }
 
-                System.out.println(charge.smsCharge);
-
                 String senderCarrier = mobiles.FindCarrier(sender);
                 String receiverCarrier = mobiles.FindCarrier(receiver);
 
                 System.out.println("From " + senderCarrier + " To " + receiverCarrier);
 
-                if (!senderCarrier.equals(receiverCarrier)) {
-                    List<Object> carrierCharge = charge.smsCharge.get(senderCarrier);
+                if (!senderCarrier.equalsIgnoreCase(receiverCarrier)) {
+                    // FROM SENDER TO RECEIVER HOW MUCH IS THE CHARGE
+                    Integer price = charge.smsCharge.get(senderCarrier).get(receiverCarrier);
 
-                    System.out.println("Charge " + carrierCharge);
+                    // cost.compute(sender, (key, value) -> value == null ? price : value + price);
+                    cost.put(sender, cost.get(sender) + price);
+
+                } else {
+                    System.out.println("Within Same carrier No charge!");
                 }
+            }
+        }
+
+        public void displayCharge(Charge charge) {
+            for (int index = 0; index < charge.smsCharge.size(); index++) {
+
             }
         }
     }
