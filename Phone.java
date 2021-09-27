@@ -1,10 +1,13 @@
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.HashMap;
+import java.util.List;
 
 public class Phone {
+    // MOBILE CAN HAVE NUMBER, BRAND AND CARRIER_NAME FOR THE NUMBER
     public static class Mobile {
         public long number;
         public String carrier, brand;
@@ -19,6 +22,7 @@ public class Phone {
         }
     }
 
+    // LIST OF ALL MOBILES
     public static class Mobiles extends Mobile {
         private int mobiles;
 
@@ -53,8 +57,8 @@ public class Phone {
             return "";
         }
 
-        public ArrayList<Long> getUserList() {
-            ArrayList<Long> list = new ArrayList<>();
+        public List<Long> getUserList() {
+            List<Long> list = new ArrayList<>();
 
             for (int index = 0; index < this.mobiles; index++) {
                 list.add(this.mobilesList[index].number);
@@ -71,6 +75,7 @@ public class Phone {
         }
     }
 
+    // ACTUAL MESSAGE DATA
     public static class Message {
         long sender, receiver, cost;
         String message, date;
@@ -86,38 +91,31 @@ public class Phone {
         }
     }
 
+    // QUEUE ALL MESSAGES TO BE SENT
     public static class MessageQueue extends Message {
-        public ArrayList<Message> messageQueue = new ArrayList<>();
+        public List<Message> messageQueue = new ArrayList<>();
 
         MessageQueue() {
             super();
         }
 
         public void Push(long sender, long receiver, String message) {
-            messageQueue.add(new Message(sender, receiver, message));
+            // PUSH TO MESSAGE QUEUE ONLY IF SENDER AND RECEIVER NUMBER ARE DIFFERENT
+            if (sender != receiver)
+                messageQueue.add(new Message(sender, receiver, message));
         }
     }
 
+    // USERS THAT ARE AVAILABLE WHO OWNS MOBILES
     public static class Users {
-        ArrayList<Long> userList = new ArrayList<Long>();
+        List<Long> userList = new ArrayList<>();
 
         Users(Mobiles mobiles) {
             this.userList = mobiles.getUserList();
         }
     }
 
-    public static class CaseInsensitiveMap extends HashMap<String, Integer> {
-        @Override
-        public Integer put(String key, Integer value) {
-            return super.put(key.toLowerCase(), value);
-        }
-
-        @Override
-        public Integer get(Object key) {
-            return super.get(key.toString().toLowerCase());
-        }
-    }
-
+    // MAP INSIDE MAP -- OUTER MAP
     public static class CaseInsensitiveMapInsideMap extends HashMap<String, CaseInsensitiveMap> {
         @Override
         public CaseInsensitiveMap put(String key, CaseInsensitiveMap value) {
@@ -130,26 +128,42 @@ public class Phone {
         }
     }
 
-    public static class Charge {
-        public Map<String, CaseInsensitiveMap> smsCharge = new CaseInsensitiveMapInsideMap();
+    // MAP WITH KEY, VALUE -- INNER MAP
+    public static class CaseInsensitiveMap extends HashMap<String, Integer> {
+        @Override
+        public Integer put(String key, Integer value) {
+            return super.put(key.toLowerCase(), value);
+        }
 
-        Charge() {
-            this.smsCharge.put("Airtel", new CaseInsensitiveMap() {
-                {
-                    put("Vodafone", 10);
-                    put("Jio", 50);
-                }
-            });
-
-            this.smsCharge.put("Vodafone", new CaseInsensitiveMap() {
-                {
-                    put("Airtel", 20);
-                    put("Jio", 100);
-                }
-            });
+        @Override
+        public Integer get(Object key) {
+            return super.get(key.toString().toLowerCase());
         }
     }
 
+    // CHARGE FOR THE SMS
+    public static class Charge {
+        public Map<String, CaseInsensitiveMap> smsCharge = new CaseInsensitiveMapInsideMap();
+        String[] providers = { "Airtel", "BSNL", "Jio", "Vodafone" };
+        Random random = new Random();
+
+        Charge() {
+            for (int index = 0; index < providers.length; index++) {
+                String senderName = providers[index];
+
+                this.smsCharge.put(senderName, new CaseInsensitiveMap() {
+                    {
+                        for (int innerIndex = 0; innerIndex < providers.length; innerIndex++) {
+                            if (senderName != providers[innerIndex])
+                                put(providers[innerIndex], random.nextInt(50));
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    // ACTUAL SMS TO BE SENT HAPPENS HERE!
     public static class SMS {
         Charge charge = new Charge();
 
@@ -179,24 +193,28 @@ public class Phone {
                 String senderCarrier = mobiles.FindCarrier(sender);
                 String receiverCarrier = mobiles.FindCarrier(receiver);
 
-                System.out.println("From " + senderCarrier + " To " + receiverCarrier);
-
                 if (!senderCarrier.equalsIgnoreCase(receiverCarrier)) {
                     // FROM SENDER TO RECEIVER HOW MUCH IS THE CHARGE
                     Integer price = charge.smsCharge.get(senderCarrier).get(receiverCarrier);
+
+                    System.out.println("From " + senderCarrier + " To " + receiverCarrier + " costs " + price);
 
                     // cost.compute(sender, (key, value) -> value == null ? price : value + price);
                     cost.put(sender, cost.get(sender) + price);
 
                 } else {
-                    System.out.println("Within Same carrier No charge!");
+                    System.out.println("Within Same carrier No charge!" + senderCarrier);
                 }
             }
+
+            this.displaySMSCharge(cost);
         }
 
-        public void displayCharge(Charge charge) {
-            for (int index = 0; index < charge.smsCharge.size(); index++) {
+        public void displaySMSCharge(Map<Long, Integer> cost) {
+            System.out.println("\nTotal SMS Charges:\n");
 
+            for (Map.Entry<Long, Integer> entry : cost.entrySet()) {
+                System.out.println(entry.getKey() + " : " + entry.getValue() + "p");
             }
         }
     }
@@ -215,7 +233,8 @@ public class Phone {
 
         MessageQueue smsQueue = new MessageQueue();
 
-        for (int i = 0; i < numOfMobiles; i++) {
+        // TO SEND TO ALL OTHERS
+        for (int i = 0; i < numOfMobiles * (numOfMobiles - 1); i++) {
             smsQueue.Push(scanner.nextLong(), scanner.nextLong(), scanner.next());
         }
 
