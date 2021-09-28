@@ -1,10 +1,11 @@
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Map;
-import java.util.Random;
 import java.util.Scanner;
-import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Random;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 public class Phone {
     // MOBILE CAN HAVE NUMBER, BRAND AND CARRIER_NAME FOR THE NUMBER
@@ -77,7 +78,7 @@ public class Phone {
 
     // ACTUAL MESSAGE DATA
     public static class Message {
-        long sender, receiver, cost;
+        long sender, receiver;
         String message, date;
 
         Message() {
@@ -87,7 +88,9 @@ public class Phone {
             this.sender = sender;
             this.receiver = receiver;
             this.message = message;
-            this.date = new Date().toString();
+
+            SimpleDateFormat ft = new SimpleDateFormat("dd MMMM yyyy hh:mm a");
+            this.date = ft.format(new Date());
         }
     }
 
@@ -124,7 +127,7 @@ public class Phone {
 
         @Override
         public CaseInsensitiveMap get(Object key) {
-            return super.get(key.toString().toLowerCase());
+            return super.get((Object) key.toString().toLowerCase());
         }
     }
 
@@ -137,7 +140,7 @@ public class Phone {
 
         @Override
         public Integer get(Object key) {
-            return super.get(key.toString().toLowerCase());
+            return super.get((Object) key.toString().toLowerCase());
         }
     }
 
@@ -180,10 +183,16 @@ public class Phone {
                 long receiver = queue.messageQueue.get(index).receiver;
 
                 System.out.println();
+
+                // HEADER
                 System.out.println("From : " + sender);
                 System.out.println("To : " + receiver);
-                System.out.println("Date Time : " + queue.messageQueue.get(index).date);
+                System.out.println("DateTime : " + queue.messageQueue.get(index).date);
+
+                // ACTUAL MESSAGE
                 System.out.println(queue.messageQueue.get(index).message);
+
+                // SIGNATURE (BRAND NAME)
                 System.out.println("Message From " + mobiles.FindBrand(sender));
 
                 if (cost.get(sender) == null) {
@@ -203,11 +212,14 @@ public class Phone {
                     cost.put(sender, cost.get(sender) + price);
 
                 } else {
-                    System.out.println("Within Same carrier No charge!" + senderCarrier);
+                    System.out.println("Within Same carrier (" + senderCarrier + ") No charge!");
                 }
             }
 
             this.displaySMSCharge(cost);
+
+            // AFTER ALL MESSAGES ARE SENT CLEAR THE QUEUE
+            queue.messageQueue.clear();
         }
 
         public void displaySMSCharge(Map<Long, Integer> cost) {
@@ -222,10 +234,14 @@ public class Phone {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
+        System.out.print("No of Mobiles to get Registered : ");
         int numOfMobiles = scanner.nextInt();
+
+        // LIST OF ALL MOBILES
         Mobiles mobiles = new Mobiles(numOfMobiles);
 
-        for (int i = 0; i < numOfMobiles; i++) {
+        System.out.println("\nEnter Brand name, Carrier name, Phone Number");
+        while (numOfMobiles-- != 0) {
             mobiles.StoreUserData(scanner.next(), scanner.next(), scanner.nextLong());
         }
 
@@ -233,15 +249,19 @@ public class Phone {
 
         MessageQueue smsQueue = new MessageQueue();
 
-        // TO SEND TO ALL OTHERS
-        for (int i = 0; i < numOfMobiles * (numOfMobiles - 1); i++) {
-            smsQueue.Push(scanner.nextLong(), scanner.nextLong(), scanner.next());
+        System.out.print("\nNo of SMS to be Sent : ");
+        int smsCount = scanner.nextInt();
+
+        // TO SAVE MESSAGE DATA IN QUEUE
+        System.out.println("\nEnter Sender Number, Receiver Number, Actual Message");
+        while (smsCount-- != 0) {
+            // READ REMAINING MESSAGE TEXT WITH LEADING WHITE SPACE REMOVED
+            smsQueue.Push(scanner.nextLong(), scanner.nextLong(), scanner.nextLine().stripLeading());
         }
 
         // smsQueue.Display();
 
         SMS sms = new SMS();
-
         sms.sendSMS(mobiles, smsQueue);
 
         scanner.close();
